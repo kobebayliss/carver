@@ -54,3 +54,6 @@ Tested with 10,000,000 allocations, released half, then 5,000,000 more allocatio
 ## Why not malloc?
 
 General-purpose allocators handle arbitrary sizes, fragmentation, thread safety, and coalescing. Carver trades that generality for speed by assuming fixed-size objects and controlled ownership.
+<br>
+<br>
+Disclaimer: Carver is a low-level allocator. Memory safety (particularly seg faulting) is the user's responsibility. Ensure your selected heap size is large enough, and is divisible by the selected object's size as well as page size (typically 4KB)
