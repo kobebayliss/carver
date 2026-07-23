@@ -24,7 +24,7 @@ double benchmark(const char* name, Func func) {
 }
 
 int main() {
-    Carver carver(sizeof(Foo), 134217728);
+    Carver carver(sizeof(Foo), 134217728 * 2);
     std::vector<Foo*> objects;
     objects.reserve(ITERATIONS);
 
@@ -105,19 +105,14 @@ int main() {
             objects[i] = nullptr;
         }
 
-        for (size_t i = 0; i < ITERATIONS / 2; i++) {
-            void* memory = carver.allocate();
-            Foo* foo = new (memory) Foo(i);
-            objects.push_back(foo);
-        }
-
-        for (Foo* obj : objects) {
-            if (obj) {
-                obj->~Foo();
-                carver.release(obj);
-            }
+        for (size_t i = objects.size(); i-- > 0;) {
+		if (objects[i]) {
+			objects[i]->~Foo();
+			carver.release(objects[i]);
+		}
         }
 
         objects.clear();
+	carver.reset();
     });
 }

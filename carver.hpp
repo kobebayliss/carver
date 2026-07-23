@@ -38,5 +38,9 @@ public:
 			next_free_slot--;
 		}
 	}
+	void reset() {
+		next_free_slot = 0;
+		head = nullptr;
+	}
 };
 
