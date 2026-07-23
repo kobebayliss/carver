@@ -9,12 +9,11 @@ class Carver {
 	void* heap = nullptr;
 	const size_t heap_size;
 	const size_t obj_size;
-	size_t next_free_slot = 0;  // relative to beginning of local heap
 	Node* head;  // next free block of memory (not at end of assigned memory)
 public:
 	Carver(size_t obj_size, size_t heap_size = 16777216) : obj_size(obj_size), heap_size(heap_size) {
 		heap = mmap(nullptr, heap_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);  // ask OS for block of memory for custom heap (default = 16MB)
-		head = nullptr;
+		head = static_cast<Node*>(heap);
 	}
 	~Carver() {
 		munmap(heap, heap_size);
@@ -25,10 +24,8 @@ public:
 			head = node->next;
 			return node;
 		}
-		void* slot = static_cast<char*>(heap) + (next_free_slot * obj_size);
-		next_free_slot++;
-		return slot;
 	}
+	// need to adjust allocate and release methods for complete pointer setup
 	void release(void* addr) {
 		if (addr != (static_cast<char*>(heap) + ((next_free_slot - 1) * obj_size))) {  // add to free list if releasing slot not at the end of the contiguous blocks
 			Node* node = static_cast<Node*>(addr);
