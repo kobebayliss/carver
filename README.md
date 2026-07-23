@@ -46,10 +46,10 @@ int main() {
 ## Benchmark
 
 Tested with 10,000,000 allocations, released half, then 5,000,000 more allocations.
-- More than 6x as fast as new/delete
-- More than 5x as fast as malloc/free
+- ~11.6x as fast as new/delete
+- ~10.9x as fast as malloc/free
 
-<img width="574" height="117" alt="Screenshot 2026-07-22 at 2 32 15 PM" src="https://github.com/user-attachments/assets/1bab929e-1a01-4a61-ab02-6448993ae001" />
+<img width="709" height="200" alt="image" src="https://github.com/user-attachments/assets/18362ee6-3243-407c-aa40-69e9f98ed7c7" />
 
 ## Why not malloc?
 
