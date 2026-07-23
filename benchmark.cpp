@@ -5,6 +5,7 @@
 #include <vector>
 
 constexpr size_t ITERATIONS = 10'000'000;
+constexpr size_t num_tests = 100; 
 
 struct Foo {
 	size_t id;
@@ -31,17 +32,15 @@ int main() {
     auto runBenchmark = [&](const char* name, auto&& func) {
         double total = 0.0;
 
-        for (size_t j = 0; j < 20; j++) {
+        for (size_t j = 0; j < num_tests + 1; j++) {
             double value = benchmark(name, func);
-	    std::cout << value << "ms" << std::endl;
 
             if (j != 0)
                 total += value;
 
-            std::cout << name << " iteration #" << j << '\n';
         }
 
-        std::cout << name << " avg (19 tests): " << total / 19 << " ms\n\n";
+        std::cout << name << " avg (" << num_tests << " tests): " << total / num_tests << " ms\n\n";
     };
 
     runBenchmark("new/delete", [&]() {
