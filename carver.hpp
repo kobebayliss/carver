@@ -5,39 +5,35 @@ struct Node {
 	Node* next;
 };
 
-class Carver {
+struct Carver {
 	void* heap = nullptr;
 	const size_t heap_size;
 	const size_t obj_size;
-	Node* head;  // next free block of memory (not at end of assigned memory)
+	Node* head;  // next free block of memory (freed before)
+	char* bump_ptr;
 public:
 	Carver(size_t obj_size, size_t heap_size = 16777216) : obj_size(obj_size), heap_size(heap_size) {
 		heap = mmap(nullptr, heap_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);  // ask OS for block of memory for custom heap (default = 16MB)
-		head = static_cast<Node*>(heap);
+		head = nullptr;
+		bump_ptr = static_cast<char*>(heap);
 	}
 	~Carver() {
 		munmap(heap, heap_size);
 	}
 	void* allocate() {
-		if (head) {  // if memory was released in middle of block, refill it first
+		if (head) {
 			Node* node = head;
-			head = node->next;
+			head = head->next;
 			return node;
 		}
+		// no freed memory in linked list; get pointer to untouched memory
+		void* ptr = bump_ptr;
+		bump_ptr += obj_size;
+		return ptr;
 	}
-	// need to adjust allocate and release methods for complete pointer setup
 	void release(void* addr) {
-		if (addr != (static_cast<char*>(heap) + ((next_free_slot - 1) * obj_size))) {  // add to free list if releasing slot not at the end of the contiguous blocks
-			Node* node = static_cast<Node*>(addr);
-			node->next = head;
-			head = node;
-		} else {
-			next_free_slot--;
-		}
-	}
-	void reset() {
-		next_free_slot = 0;
-		head = nullptr;
+		Node* node = static_cast<Node*>(addr);
+		node->next = head;
+		head = node;
 	}
 };
-
