@@ -1,4 +1,4 @@
-#include "Carver.h"
+#include "carver.hpp"
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
@@ -12,7 +12,7 @@ struct Foo {
 };
 
 template<typename Func>
-void benchmark(const char* name, Func func) {
+double benchmark(const char* name, Func func) {
 	auto start = std::chrono::high_resolution_clock::now();
 	func();
 	auto end = std::chrono::high_resolution_clock::now();
@@ -20,84 +20,104 @@ void benchmark(const char* name, Func func) {
 		std::chrono::duration_cast<std::chrono::nanoseconds>(
 			end - start
 		).count();
-	std::cout << name << ": "
-			  << duration / 1e6
-			  << " ms\n";
+	return duration / 1e6;
 }
 
 int main() {
-	Carver carver(sizeof(Foo), 134217728);
-	std::vector<Foo*> objects;
-	objects.reserve(ITERATIONS);
-	benchmark("new/delete", [&]() {
-		for (size_t i = 0; i < ITERATIONS; i++) {
-			objects.push_back(new Foo(i));
-		}
-		for (size_t i = 0; i < ITERATIONS; i += 2) {
-			delete objects[i];
-			objects[i] = nullptr;
-		}
+    Carver carver(sizeof(Foo), 134217728);
+    std::vector<Foo*> objects;
+    objects.reserve(ITERATIONS);
 
-		for (size_t i = 0; i < ITERATIONS / 2; i++) {
-			objects.push_back(new Foo(i));
-		}
-		for (Foo* obj : objects) {
-			if (obj) {
-				delete obj;
-			}
-		}
-		objects.clear();
-	});
-	benchmark("malloc/free", [&]() {
-		for (size_t i = 0; i < ITERATIONS; i++) {
-			void* memory = malloc(sizeof(Foo));
-			Foo* foo = new(memory) Foo(i);
-			objects.push_back(foo);
-		}
-		for (size_t i = 0; i < ITERATIONS; i += 2) {
-			objects[i]->~Foo();
-			free(objects[i]);
-			objects[i] = nullptr;
-		}
+    auto runBenchmark = [&](const char* name, auto&& func) {
+        double total = 0.0;
 
-		for (size_t i = 0; i < ITERATIONS / 2; i++) {
-			void* memory = malloc(sizeof(Foo));
-			Foo* foo = new(memory) Foo(i);
-			objects.push_back(foo);
-		}
-		for (Foo* obj : objects) {
-			if (obj) {
-				obj->~Foo();
-				free(obj);
-			}
-		}
-		objects.clear();
-	});
-	benchmark("Carver", [&]() {
-		for (size_t i = 0; i < ITERATIONS; i++) {
-			void* memory = carver.allocate();
-			Foo* foo = new(memory) Foo(i);
-			objects.push_back(foo);
-		}
+        for (size_t j = 0; j < 20; j++) {
+            double value = benchmark(name, func);
+	    std::cout << value << "ms" << std::endl;
 
-		for (size_t i = 0; i < ITERATIONS; i += 2) {
-			objects[i]->~Foo();
-			carver.release(objects[i]);
-			objects[i] = nullptr;
-		}
-		
-		for (size_t i = 0; i < ITERATIONS / 2; i++) {
-			void* memory = carver.allocate();
-			Foo* foo = new(memory) Foo(i);
-			objects.push_back(foo);
-		}
+            if (j != 0)
+                total += value;
 
-		for (Foo* obj : objects) {
-			if (obj) {
-				obj->~Foo();
-				carver.release(obj);
-			}
-		}
-		objects.clear();
-	});
+            std::cout << name << " iteration #" << j << '\n';
+        }
+
+        std::cout << name << " avg (19 tests): " << total / 19 << " ms\n\n";
+    };
+
+    runBenchmark("new/delete", [&]() {
+        for (size_t i = 0; i < ITERATIONS; i++)
+            objects.push_back(new Foo(i));
+
+        for (size_t i = 0; i < ITERATIONS; i += 2) {
+            delete objects[i];
+            objects[i] = nullptr;
+        }
+
+        for (size_t i = 0; i < ITERATIONS / 2; i++)
+            objects.push_back(new Foo(i));
+
+        for (Foo* obj : objects)
+            if (obj)
+                delete obj;
+
+        objects.clear();
+    });
+
+    runBenchmark("malloc/free", [&]() {
+        for (size_t i = 0; i < ITERATIONS; i++) {
+            void* memory = malloc(sizeof(Foo));
+            Foo* foo = new (memory) Foo(i);
+            objects.push_back(foo);
+        }
+
+        for (size_t i = 0; i < ITERATIONS; i += 2) {
+            objects[i]->~Foo();
+            free(objects[i]);
+            objects[i] = nullptr;
+        }
+
+        for (size_t i = 0; i < ITERATIONS / 2; i++) {
+            void* memory = malloc(sizeof(Foo));
+            Foo* foo = new (memory) Foo(i);
+            objects.push_back(foo);
+        }
+
+        for (Foo* obj : objects) {
+            if (obj) {
+                obj->~Foo();
+                free(obj);
+            }
+        }
+
+        objects.clear();
+    });
+
+    runBenchmark("Carver", [&]() {
+        for (size_t i = 0; i < ITERATIONS; i++) {
+            void* memory = carver.allocate();
+            Foo* foo = new (memory) Foo(i);
+            objects.push_back(foo);
+        }
+
+        for (size_t i = 0; i < ITERATIONS; i += 2) {
+            objects[i]->~Foo();
+            carver.release(objects[i]);
+            objects[i] = nullptr;
+        }
+
+        for (size_t i = 0; i < ITERATIONS / 2; i++) {
+            void* memory = carver.allocate();
+            Foo* foo = new (memory) Foo(i);
+            objects.push_back(foo);
+        }
+
+        for (Foo* obj : objects) {
+            if (obj) {
+                obj->~Foo();
+                carver.release(obj);
+            }
+        }
+
+        objects.clear();
+    });
 }
