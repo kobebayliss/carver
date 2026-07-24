@@ -7,33 +7,36 @@ struct Node {
 
 struct Carver {
 	void* heap = nullptr;
+	void* bump_ptr = nullptr;
 	const size_t heap_size;
 	const size_t obj_size;
-	Node* head;  // next free block of memory (freed before)
-	char* bump_ptr;
+	
+	void* get_heap(size_t heap_size) {
+		return mmap(nullptr, heap_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_POPULATE, -1, 0);
+	}
+
 public:
 	Carver(size_t obj_size, size_t heap_size = 16777216) : obj_size(obj_size), heap_size(heap_size) {
-		heap = mmap(nullptr, heap_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);  // ask OS for block of memory for custom heap (default = 16MB)
-		head = nullptr;
+		heap = get_heap(heap_size);
 		bump_ptr = static_cast<char*>(heap);
 	}
 	~Carver() {
 		munmap(heap, heap_size);
 	}
+
 	void* allocate() {
-		if (head) {
-			Node* node = head;
-			head = head->next;
-			return node;
+		// get pointer to untouched memory
+		if (bump_ptr == static_cast<char*>(heap) + heap_size) {  // end of current heap, get new heap and move bump ptr there
+			bump_ptr = get_heap(heap_size);
 		}
-		// no freed memory in linked list; get pointer to untouched memory
 		void* ptr = bump_ptr;
-		bump_ptr += obj_size;
+		bump_ptr = static_cast<void*>(static_cast<char*>(bump_ptr) + obj_size);
 		return ptr;
 	}
 	void release(void* addr) {
-		Node* node = static_cast<Node*>(addr);
-		node->next = head;
-		head = node;
+		char* slot = static_cast<char*>(addr);
+		if (slot + obj_size == bump_ptr) {  // was last object allocated, bump ptr moves back
+			bump_ptr = addr;
+		}
 	}
 };
