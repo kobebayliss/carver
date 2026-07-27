@@ -7,7 +7,7 @@
 
 constexpr size_t ITERATIONS = 10'000'000;
 constexpr size_t REALLOC_COUNT = 2'000'000;
-constexpr size_t num_tests = 20;
+constexpr size_t num_tests = 100;
 
 struct Foo {
 	size_t id;
@@ -39,7 +39,7 @@ std::vector<bool> makeRemovalMask(size_t n, double p, unsigned seed) {
 }
 
 int main() {
-	Carver<sizeof(Foo), static_cast<size_t>(134217728) * 8> carver{};
+	Carver<sizeof(Foo), static_cast<size_t>(134217728) * 8, 12'000'000> carver{};
 	Foo** objects = new Foo*[ITERATIONS + REALLOC_COUNT]{};
 	const unsigned SEED = 12345;
 	std::vector<bool> removalMask = makeRemovalMask(ITERATIONS, 1.0 / 3.0, SEED);
@@ -48,7 +48,6 @@ int main() {
 		double total = 0.0;
 		for (size_t j = 0; j < num_tests + 1; j++) {
 			double value = benchmark(name, func);
-			std::cout << name << " took " << value << "ms for test " << j << std::endl;
 			if (j != 0)
 				total += value;
 		}
@@ -101,7 +100,7 @@ int main() {
 		}
 	});
 
-	runBenchmark("Carver", [&]() {
+	runBenchmark("carver", [&]() {
 		for (size_t i = 0; i < ITERATIONS; i++) {
 			void* memory = carver.allocate();
 			objects[i] = new (memory) Foo(i);
