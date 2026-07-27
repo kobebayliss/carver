@@ -39,7 +39,7 @@ std::vector<bool> makeRemovalMask(size_t n, double p, unsigned seed) {
 }
 
 int main() {
-	Carver carver(sizeof(Foo), static_cast<size_t>(134217728) * 8);
+	Carver<sizeof(Foo), static_cast<size_t>(134217728) * 8> carver{};
 	Foo** objects = new Foo*[ITERATIONS + REALLOC_COUNT]{};
 	const unsigned SEED = 12345;
 	std::vector<bool> removalMask = makeRemovalMask(ITERATIONS, 1.0 / 3.0, SEED);
