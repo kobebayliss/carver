@@ -2,7 +2,8 @@
 
 A lightweight, low-latency fixed-size memory allocator written in C++.
 
-Carver pre-allocates a large memory region via `mmap` and carves it into fixed-size blocks, avoiding repeated `new`/`malloc` calls. Freed blocks are recycled through a flat free-stack array. Object size, heap size, and free-stack capacity are compile-time template parameters, reducing overhead for pointer arithmetic and allowing fully inline `allocate()`/`release()`.
+Carver pre-allocates a large memory region via `mmap` and carves it into fixed-size blocks, avoiding repeated `new`/`malloc` calls. 
+Freed blocks are recycled through a flat free-stack array.
 
 ## Features
 
