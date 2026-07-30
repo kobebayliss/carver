@@ -48,6 +48,7 @@ int main() {
 		double total = 0.0;
 		for (size_t j = 0; j < num_tests + 1; j++) {
 			double value = benchmark(name, func);
+			std::cout << "test #" << j << " took " << value << "ms" << std::endl;
 			if (j != 0)
 				total += value;
 		}

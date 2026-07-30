@@ -21,6 +21,9 @@ public:
 		munmap(heap, heap_size);
 		munmap(free_stack, max_free * sizeof(void*));
 	}
+	Carver(const Carver&) = delete;
+	Carver& operator=(const Carver&) = delete;
+
 	void* allocate() {
 		if (free_count > 0) [[likely]] {  // get address from free stack
 			return free_stack[--free_count];
