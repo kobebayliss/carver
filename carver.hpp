@@ -10,9 +10,17 @@ class Carver {
 	size_t free_count = 0;
 	
 	char* get_heap(char* prev_heap = nullptr) {
-		char* new_heap = static_cast<char*>(mmap(nullptr, heap_size + 8, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));  // allocate heap_size + 8 bytes for pointer to previous heap
+		char* new_heap = static_cast<char*>(mmap(nullptr, heap_size + 8, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE, -1, 0));  // allocate heap_size + 8 bytes for pointer to previous heap
 		*reinterpret_cast<char**>(new_heap) = prev_heap;
 		return new_heap + 8;
+	}
+	void free_heap_chain() {
+		char* curr = current_heap;
+		while (curr) {
+			char* prev = *reinterpret_cast<char**>(curr - 8);
+			munmap(curr - 8, heap_size + 8);
+			curr = prev;
+		}
 	}
 public:
 	Carver() {
@@ -21,7 +29,7 @@ public:
 		free_stack = static_cast<void**>(mmap(nullptr, max_free * sizeof(void*), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
 	}
 	~Carver() {
-		if (current_heap) munmap(current_heap, heap_size);
+		free_heap_chain();
 		if (free_stack) munmap(free_stack, max_free * sizeof(void*));
 	}
 	// copy operations (unsupported)
@@ -36,7 +44,7 @@ public:
 	}
 	Carver& operator=(Carver&& other) noexcept {
 		if (this != &other) {
-			if (current_heap) munmap(current_heap, heap_size);
+			free_heap_chain();
 			if (free_stack) munmap(free_stack, max_free * sizeof(void*));
 			current_heap = other.current_heap;
 			bump_ptr = other.bump_ptr;
