@@ -39,7 +39,7 @@ std::vector<bool> makeRemovalMask(size_t n, double p, unsigned seed) {
 }
 
 int main() {
-	Carver<sizeof(Foo), static_cast<size_t>(134217728) * 8> carver{};
+	Carver<sizeof(Foo), static_cast<size_t>(134217728) * 8, 12'000'000> carver{};
 	Foo** objects = new Foo*[ITERATIONS + REALLOC_COUNT]{};
 	const unsigned SEED = 12345;
 	std::vector<bool> removalMask = makeRemovalMask(ITERATIONS, 1.0 / 3.0, SEED);
@@ -55,51 +55,51 @@ int main() {
 		std::cout << name << " avg (" << num_tests << " tests): " << total / num_tests << " ms\n\n";
 	};
 
-	// runBenchmark("new/delete", [&]() {
-	// 	for (size_t i = 0; i < ITERATIONS; i++) {
-	// 		objects[i] = new Foo(i);
-	// 	}
-	// 	for (size_t i = 0; i < ITERATIONS; i++) {
-	// 		if (removalMask[i]) {
-	// 			delete objects[i];
-	// 			objects[i] = nullptr;
-	// 		}
-	// 	}
-	// 	for (size_t i = 0; i < REALLOC_COUNT; i++) {
-	// 		objects[ITERATIONS + i] = new Foo(i);
-	// 	}
-	// 	for (size_t i = 0; i < ITERATIONS + REALLOC_COUNT; i++) {
-	// 		if (objects[i]) {
-	// 			delete objects[i];
-	// 			objects[i] = nullptr;
-	// 		}
-	// 	}
-	// });
-	//
-	// runBenchmark("malloc/free", [&]() {
-	// 	for (size_t i = 0; i < ITERATIONS; i++) {
-	// 		void* memory = malloc(sizeof(Foo));
-	// 		objects[i] = new (memory) Foo(i);
-	// 	}
-	// 	for (size_t i = 0; i < ITERATIONS; i++) {
-	// 		if (removalMask[i]) {
-	// 			objects[i]->~Foo();
-	// 			free(objects[i]);
-	// 			objects[i] = nullptr;
-	// 		}
-	// 	}
-	// 	for (size_t i = 0; i < REALLOC_COUNT; i++) {
-	// 		void* memory = malloc(sizeof(Foo));
-	// 		objects[ITERATIONS + i] = new (memory) Foo(i);
-	// 	}
-	// 	for (size_t i = 0; i < ITERATIONS + REALLOC_COUNT; i++) {
-	// 		if (objects[i]) {
-	// 			objects[i]->~Foo();
-	// 			free(objects[i]);
-	// 			objects[i] = nullptr;
-	// 		}
-	// 	}
-	// });
+	runBenchmark("new/delete", [&]() {
+		for (size_t i = 0; i < ITERATIONS; i++) {
+			objects[i] = new Foo(i);
+		}
+		for (size_t i = 0; i < ITERATIONS; i++) {
+			if (removalMask[i]) {
+				delete objects[i];
+				objects[i] = nullptr;
+			}
+		}
+		for (size_t i = 0; i < REALLOC_COUNT; i++) {
+			objects[ITERATIONS + i] = new Foo(i);
+		}
+		for (size_t i = 0; i < ITERATIONS + REALLOC_COUNT; i++) {
+			if (objects[i]) {
+				delete objects[i];
+				objects[i] = nullptr;
+			}
+		}
+	});
+
+	runBenchmark("malloc/free", [&]() {
+		for (size_t i = 0; i < ITERATIONS; i++) {
+			void* memory = malloc(sizeof(Foo));
+			objects[i] = new (memory) Foo(i);
+		}
+		for (size_t i = 0; i < ITERATIONS; i++) {
+			if (removalMask[i]) {
+				objects[i]->~Foo();
+				free(objects[i]);
+				objects[i] = nullptr;
+			}
+		}
+		for (size_t i = 0; i < REALLOC_COUNT; i++) {
+			void* memory = malloc(sizeof(Foo));
+			objects[ITERATIONS + i] = new (memory) Foo(i);
+		}
+		for (size_t i = 0; i < ITERATIONS + REALLOC_COUNT; i++) {
+			if (objects[i]) {
+				objects[i]->~Foo();
+				free(objects[i]);
+				objects[i] = nullptr;
+			}
+		}
+	});
 
 	runBenchmark("carver", [&]() {
 		for (size_t i = 0; i < ITERATIONS; i++) {
