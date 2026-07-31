@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdlib>
 #include <sys/mman.h>
 
 template <size_t obj_size, size_t heap_size = 16777216, size_t max_free = 65536>  // max_free is maximum number of freed objects (not bytes)
@@ -18,11 +19,34 @@ public:
 		free_stack = static_cast<void**>(mmap(nullptr, max_free * sizeof(void*), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
 	}
 	~Carver() {
-		munmap(heap, heap_size);
-		munmap(free_stack, max_free * sizeof(void*));
+		if (heap) munmap(heap, heap_size);
+		if (free_stack) munmap(free_stack, max_free * sizeof(void*));
 	}
+	// copy operations (unsupported)
 	Carver(const Carver&) = delete;
 	Carver& operator=(const Carver&) = delete;
+	// move operations
+	Carver(Carver&& other) noexcept : heap(other.heap), bump_ptr(other.bump_ptr), free_stack(other.free_stack), free_count(other.free_count) {
+		other.heap = nullptr;
+		other.bump_ptr = nullptr;
+		other.free_stack = nullptr;
+		other.free_count = 0;
+	}
+	Carver& operator=(Carver&& other) noexcept {
+		if (this != &other) {
+			if (heap) munmap(heap, heap_size);
+			if (free_stack) munmap(free_stack, max_free * sizeof(void*));
+			heap = other.heap;
+			bump_ptr = other.bump_ptr;
+			free_stack = other.free_stack;
+			free_count = other.free_count;
+			other.heap = nullptr;
+			other.bump_ptr = nullptr;
+			other.free_stack = nullptr;
+			other.free_count = 0;
+		}
+		return *this;
+	}
 
 	void* allocate() {
 		if (free_count > 0) [[likely]] {  // get address from free stack
